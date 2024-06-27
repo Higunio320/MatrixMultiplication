@@ -64,7 +64,7 @@ mod matrix_test {
     use crate::matrix::Matrix;
 
     #[test]
-    fn iter_read_correct() {
+    fn iter_read_correct_ints() {
         let contents = vec!["3", "2", " 1 2", "3 4", "5 6"];
 
         let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
@@ -88,6 +88,15 @@ mod matrix_test {
                                      Matrix{ rows: 3, columns: 2, numbers: vec![1.2, 2.567, 3.45, 4.2, 5.0, 6.0] }),
             Err(_) => assert!(false)
         }
+    }
+
+    #[test]
+    fn iter_read_floats_as_ints() {
+        let contents = vec!["3", "2", "1.2 2.567", "3.45 4.2", "5.0 6.0"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
     }
 
     #[test]
