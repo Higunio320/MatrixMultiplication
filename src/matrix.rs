@@ -21,17 +21,17 @@ impl<T: Mul<Output=T> + FromStr> Matrix<T> {
 
     fn from_iterator<'a>(mut iterator: impl Iterator<Item=&'a str>) -> Result<Matrix<T>, String> {
         let rows = match iterator.next() {
-            Some(rows) => {match rows.parse::<usize>() {
+            Some(rows) => {match rows.trim().parse::<usize>() {
                 Ok(parsed) => parsed,
-                Err(_) => return Err(format!("Couldn't parse '{}' as rows", rows))
+                Err(_) => return Err(format!("Couldn't parse '{}' as rows num", rows))
             }}
             None => return Err(String::from("File is empty!"))
         };
 
         let columns = match iterator.next() {
-            Some(columns) => {match columns.parse::<usize>() {
+            Some(columns) => {match columns.trim().parse::<usize>() {
                 Ok(parsed) => parsed,
-                Err(_) => return Err(format!("Couldn't parse '{}' as columns", columns))
+                Err(_) => return Err(format!("Couldn't parse '{}' as columns num", columns))
             }}
             None => return Err(String::from("File doesn't have columns row"))
         };
@@ -60,21 +60,104 @@ impl<T: Mul<Output=T> + FromStr> Matrix<T> {
 }
 
 #[cfg(test)]
-mod test {
+mod matrix_test {
     use crate::matrix::Matrix;
 
-    fn correct_read_from_iter() {
-        let content = vec!["3", "2", "1 2", "1 3", "2 5"];
+    #[test]
+    fn iter_read_correct() {
+        let contents = vec!["3", "2", " 1 2", "3 4", "5 6"];
 
-        let matrix = Matrix::from_iterator(content.into_iter()).unwrap();
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
 
-        assert_eq!(matrix, Matrix {rows: 3, columns: 2, numbers: vec![1, 2, 1, 3, 2, 5]});
+        match matrix {
+            Ok(matrix) => assert_eq!(matrix,
+                                     Matrix{ rows: 3, columns: 2, numbers: vec![1, 2, 3, 4, 5, 6] }),
+            Err(_) => assert!(false)
+        }
     }
 
-    fn incorrect_read_from_iter() {
-        let content = vec!["3", "2", "1 2 3", "4 5 6", "7 8 9 "];
 
-        let matrix = Matrix::<i32>::from_iterator(content.into_iter());
+    #[test]
+    fn iter_read_correct_floats() {
+        let contents = vec!["3", "2", "1.2 2.567", "3.45 4.2", "5.0 6.0"];
+
+        let matrix = Matrix::<f32>::from_iterator(contents.into_iter());
+
+        match matrix {
+            Ok(matrix) => assert_eq!(matrix,
+                                     Matrix{ rows: 3, columns: 2, numbers: vec![1.2, 2.567, 3.45, 4.2, 5.0, 6.0] }),
+            Err(_) => assert!(false)
+        }
+    }
+
+    #[test]
+    fn iter_read_blank() {
+        let contents = vec![""];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_no_columns() {
+        let contents = vec!["2"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_no_matrix() {
+        let contents = vec!["3", "2"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_wrong_rows() {
+        let contents = vec!["a"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_wrong_columns() {
+        let contents = vec!["2", "a"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_incorrect_rows_in_matrix_data() {
+        let contents = vec!["3", "2", "1 2", "3 4"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_incorrect_columns_in_matrix_data() {
+        let contents = vec!["3", "2", "1 2 3", "4 5 6", "7 8 9"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
+
+        assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn iter_read_wrong_data_in_matrix_data() {
+        let contents = vec!["3", "2", "1 2 3", "a 5 6", "7 8 9"];
+
+        let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
 
         assert!(matrix.is_err());
     }
