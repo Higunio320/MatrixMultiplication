@@ -43,6 +43,7 @@ impl<T: Display> Display for Matrix<T> {
                 tmp.push(' ');
                 row += tmp.as_str();
             }
+            row.remove(row.len()-1);
             rows.push(row + "\n");
         }
 
@@ -230,5 +231,18 @@ mod matrix_test {
         let matrix = Matrix::<i32>::from_iterator(contents.into_iter());
 
         assert!(matrix.is_err());
+    }
+
+    #[test]
+    fn to_string_correct() {
+        let matrix = Matrix::<i32>::from_vec(
+            vec!["3", "2", "1 2", "3 4", "5 6"]
+        ).unwrap();
+
+        let result = matrix.to_string();
+
+        let expected = String::from("3\n2\n1 2\n3 4\n5 6\n");
+
+        assert_eq!(expected, result);
     }
 }
