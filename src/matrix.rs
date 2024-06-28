@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::fs;
 use std::ops::Mul;
 use std::str::FromStr;
@@ -9,7 +10,30 @@ pub struct Matrix<T> {
     numbers: Vec<T>
 }
 
-impl<T: Mul<Output=T> + FromStr> Matrix<T> {
+impl<T> Matrix<T> {
+    pub fn get_rows(&self) -> usize {
+        return self.rows;
+    }
+
+    pub fn get_columns(&self) -> usize {
+        return self.columns;
+    }
+
+    pub fn get_numbers(&self) -> &Vec<T> {
+        return &self.numbers;
+    }
+
+    pub fn new(rows: usize, columns: usize, numbers: Vec<T>) -> Result<Matrix<T>, String> {
+        if numbers.len() != rows * columns {
+            return Err(format!("Numbers length: {} doesn't match rows * columns: {} * {} = {}",
+                               numbers.len(), rows, columns, rows * columns))
+        }
+
+        Ok(Matrix { rows, columns, numbers })
+    }
+}
+
+impl<T: FromStr> Matrix<T> {
     pub fn from_file(file_name: &str) -> Result<Matrix<T>, String> {
         let contents = match fs::read_to_string(file_name) {
             Ok(contents) => contents,
@@ -17,6 +41,10 @@ impl<T: Mul<Output=T> + FromStr> Matrix<T> {
         };
 
         return Self::from_iterator(contents.lines());
+    }
+
+    pub fn from_vec(vector: Vec<&str>) -> Result<Matrix<T>, String> {
+        return Self::from_iterator(vector.iter());
     }
 
     fn from_iterator<'a>(mut iterator: impl Iterator<Item=&'a str>) -> Result<Matrix<T>, String> {
@@ -51,7 +79,9 @@ impl<T: Mul<Output=T> + FromStr> Matrix<T> {
 
             match row {
                 Ok(mut parsed) if parsed.len() == columns => numbers.append(&mut parsed),
-                _ => return Err(format!("Error parsing {} row", i))
+                Ok(parsed) => return Err(format!("Row {} length: {} doesn't match columns: {}",
+                                                 i, parsed.len(), columns)),
+                Err(_) => return Err(format!("Error parsing {} row", i)),
             }
         }
 
