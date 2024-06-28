@@ -36,6 +36,44 @@ pub fn multiply<T>(matrix_a: Matrix<T>, matrix_b: Matrix<T>) -> Result<Matrix<T>
     Ok(Matrix::new(rows, columns, numbers).unwrap())
 }
 
+pub fn run(config: Config) -> Result<(), String> {
+    let matrix_a = Matrix::<i32>::from_file(config.matrix_a_file_name.as_str())?;
+    let matrix_b = Matrix::<i32>::from_file(config.matrix_b_file_name.as_str())?;
+
+    let matrix_c = multiply(matrix_a, matrix_b)?;
+
+    return matrix_c.to_file(config.matrix_c_file_name.as_str())
+}
+
+pub struct Config {
+    matrix_a_file_name: String,
+    matrix_b_file_name: String,
+    matrix_c_file_name: String
+}
+
+impl Config {
+    pub fn from_iter(mut iterator: impl Iterator<Item=String>) -> Result<Config, String> {
+        iterator.next();
+
+        let matrix_a_file_name = match iterator.next() {
+            Some(file_name) => file_name,
+            None => return Err(String::from("Missing Matrix A file name"))
+        };
+
+        let matrix_b_file_name = match iterator.next() {
+            Some(file_name) => file_name,
+            None => return Err(String::from("Missing Matrix B file name"))
+        };
+
+        let matrix_c_file_name = match iterator.next() {
+            Some(file_name) => file_name,
+            None => return Err(String::from("Missing Matrix C file name"))
+        };
+
+        Ok(Config{ matrix_a_file_name, matrix_b_file_name, matrix_c_file_name })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::matrix::Matrix;
@@ -69,6 +107,5 @@ mod test {
 
         assert!(result.is_err());
     }
-
 
 }

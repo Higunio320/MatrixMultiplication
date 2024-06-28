@@ -1,6 +1,5 @@
-use std::fmt::format;
+use std::fmt::{Display, Formatter};
 use std::fs;
-use std::ops::Mul;
 use std::str::FromStr;
 
 #[derive(PartialEq, Debug)]
@@ -30,6 +29,38 @@ impl<T> Matrix<T> {
         }
 
         Ok(Matrix { rows, columns, numbers })
+    }
+}
+
+impl<T: Display> Display for Matrix<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut rows= Vec::with_capacity(self.rows);
+
+        for i in 0..self.rows {
+            let mut row = String::with_capacity(self.columns);
+            for j in 0..self.columns {
+                let mut tmp = self.numbers[i * self.columns + j].to_string();
+                tmp.push(' ');
+                row += tmp.as_str();
+            }
+            rows.push(row + "\n");
+        }
+
+        let rows: String = rows
+            .iter()
+            .flat_map(|row| row.chars())
+            .collect();
+
+        write!(f, "{}\n{}\n{}", self.rows, self.columns, rows)
+    }
+}
+
+impl<T: Display> Matrix<T> {
+    pub fn to_file(&self, file_name: &str) -> Result<(), String> {
+        return match fs::write(file_name, self.to_string()) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(format!("Error writing to file {}: {}", file_name, error))
+        };
     }
 }
 
