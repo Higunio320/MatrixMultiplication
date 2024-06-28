@@ -44,7 +44,7 @@ impl<T: FromStr> Matrix<T> {
     }
 
     pub fn from_vec(vector: Vec<&str>) -> Result<Matrix<T>, String> {
-        return Self::from_iterator(vector.iter());
+        return Self::from_iterator(vector.into_iter());
     }
 
     fn from_iterator<'a>(mut iterator: impl Iterator<Item=&'a str>) -> Result<Matrix<T>, String> {
