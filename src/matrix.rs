@@ -1,12 +1,14 @@
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::str::FromStr;
+use std::sync::Arc;
+use rand::Rng;
 
 #[derive(PartialEq, Debug)]
 pub struct Matrix<T> {
     rows: usize,
     columns: usize,
-    numbers: Vec<T>
+    numbers: Arc<Vec<T>>
 }
 
 impl<T> Matrix<T> {
@@ -18,8 +20,8 @@ impl<T> Matrix<T> {
         return self.columns;
     }
 
-    pub fn get_numbers(&self) -> &Vec<T> {
-        return &self.numbers;
+    pub fn get_numbers(&self) -> Arc<Vec<T>> {
+        return Arc::clone(&self.numbers)
     }
 
     pub fn new(rows: usize, columns: usize, numbers: Vec<T>) -> Result<Matrix<T>, String> {
@@ -28,9 +30,31 @@ impl<T> Matrix<T> {
                                numbers.len(), rows, columns, rows * columns))
         }
 
+        let numbers = Arc::new(numbers);
+
         Ok(Matrix { rows, columns, numbers })
     }
 }
+
+impl Matrix<f32> {
+    pub fn gen_random(rows: usize, columns: usize, min_val: f32, max_val: f32) -> Result<Matrix<f32>, String> {
+        if min_val >= max_val {
+            return Err(format!("Min_val: {min_val} must be less than max_val: {max_val}"))
+        }
+        let mut numbers = Vec::with_capacity(rows*columns);
+
+        let mut rng = rand::thread_rng();
+
+        for _ in 0..rows * columns {
+            numbers.push(rng.gen_range(min_val..max_val));
+        }
+
+        let numbers = Arc::new(numbers);
+
+        Ok(Matrix { rows, columns, numbers })
+    }
+}
+
 
 impl<T: Display> Display for Matrix<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -117,12 +141,15 @@ impl<T: FromStr> Matrix<T> {
             }
         }
 
+        let numbers = Arc::new(numbers);
+
         Ok(Matrix { rows, columns, numbers })
     }
 }
 
 #[cfg(test)]
 mod matrix_test {
+    use std::sync::Arc;
     use crate::matrix::Matrix;
 
     #[test]
@@ -133,7 +160,7 @@ mod matrix_test {
 
         match matrix {
             Ok(matrix) => assert_eq!(matrix,
-                                     Matrix{ rows: 3, columns: 2, numbers: vec![1, 2, 3, 4, 5, 6] }),
+                                     Matrix{ rows: 3, columns: 2, numbers: Arc::new(vec![1, 2, 3, 4, 5, 6]) }),
             Err(_) => assert!(false)
         }
     }
@@ -147,7 +174,7 @@ mod matrix_test {
 
         match matrix {
             Ok(matrix) => assert_eq!(matrix,
-                                     Matrix{ rows: 3, columns: 2, numbers: vec![1.2, 2.567, 3.45, 4.2, 5.0, 6.0] }),
+                                     Matrix{ rows: 3, columns: 2, numbers: Arc::new(vec![1.2, 2.567, 3.45, 4.2, 5.0, 6.0]) }),
             Err(_) => assert!(false)
         }
     }
@@ -244,5 +271,24 @@ mod matrix_test {
         let expected = String::from("3\n2\n1 2\n3 4\n5 6\n");
 
         assert_eq!(expected, result);
+    }
+
+    #[test]
+    fn gen_random_correct_matrix() {
+        let rows = 10;
+        let columns = 10;
+        let min_val = 1.0;
+        let max_val = 2.0;
+
+        let matrix = Matrix::gen_random(rows, columns, min_val, max_val).unwrap();
+
+        assert_eq!(rows, matrix.rows);
+        assert_eq!(columns, matrix.columns);
+
+        let numbers = Arc::<Vec<f32>>::into_inner(matrix.numbers).unwrap();
+
+        for i in numbers {
+            assert!(i >= min_val && i <= max_val);
+        }
     }
 }
