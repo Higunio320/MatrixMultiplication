@@ -15,6 +15,8 @@ pub fn multiply<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_threads: u
 
     let rows = matrix_a.get_rows();
 
+    let columns = matrix_b.get_columns();
+
     if num_of_threads > rows {
         return Err(format!(
             "Num of threads: {num_of_threads} cannot be higher than Matrix A rows: {rows}"))
@@ -25,19 +27,43 @@ pub fn multiply<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_threads: u
             "Num of threads: {num_of_threads} must be higher than 0"))
     }
 
+    let results_from_threads = match multiply_in_parallel(matrix_a, matrix_b, num_of_threads) {
+        Ok(results) => results,
+        Err(error) => return Err(error)
+    };
+
+    if let Ok(mutex) = Arc::try_unwrap(results_from_threads) {
+        if let Ok(vector) = mutex.into_inner() {
+            let vector: Vec<T> = vector.into_iter().flat_map(|vec| vec).collect();
+            Ok(Matrix::new(rows, columns, vector).unwrap())
+        } else {
+            Err(String::from("Error acquiring mutex in main thread"))
+        }
+    } else {
+        Err(String::from("Error unwrapping results in main thread"))
+    }
+}
+
+fn multiply_in_parallel<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_threads: usize) -> Result<Arc<Mutex<Vec<Vec<T>>>>, String>
+    where
+        for<'a> &'a T: Mul<Output=T>,
+        T: AddAssign<T> + Sync + Send + 'static {
+
+    let rows = matrix_a.get_rows();
     let columns = matrix_b.get_columns();
-
     let n = matrix_a.get_columns();
-
-    let a_numbers = matrix_a.get_numbers();
-    let b_numbers = matrix_b.get_numbers();
 
     let rows_for_threads = generate_indexes_for_threads(num_of_threads, rows);
 
-    let results_from_threads: Arc<Mutex<Vec<Vec<T>>>> = Arc::new(Mutex::new(Vec::with_capacity(num_of_threads)));
+    let results_from_threads: Arc<Mutex<Vec<Vec<T>>>> =
+        Arc::new(Mutex::new(Vec::with_capacity(num_of_threads)));
+
     for _ in 0..num_of_threads {
         results_from_threads.lock().unwrap().push(vec![])
     }
+
+    let a_numbers = matrix_a.get_numbers();
+    let b_numbers = matrix_b.get_numbers();
 
     let mut handles = Vec::with_capacity(num_of_threads);
 
@@ -49,7 +75,6 @@ pub fn multiply<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_threads: u
         let end_row = rows_for_threads[i+1];
 
         let results_from_threads = Arc::clone(&results_from_threads);
-
 
         let handle = thread::spawn(move || {
             let mut result = Vec::with_capacity((end_row - start_row) * columns);
@@ -78,16 +103,7 @@ pub fn multiply<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_threads: u
         }
     }
 
-    if let Ok(mutex) = Arc::try_unwrap(results_from_threads) {
-        if let Ok(vector) = mutex.into_inner() {
-            let vector: Vec<T> = vector.into_iter().flat_map(|vec| vec).collect();
-            Ok(Matrix::new(rows, columns, vector).unwrap())
-        } else {
-            Err(String::from("Error acquiring mutex in main thread"))
-        }
-    } else {
-        Err(String::from("Error unwrapping results in main thread"))
-    }
+    Ok(results_from_threads)
 }
 
 fn generate_indexes_for_threads(num_of_threads: usize, rows: usize) -> Vec<usize> {
