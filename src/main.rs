@@ -9,6 +9,7 @@ fn main() {
     let config = Config::from_iter(env::args())
         .unwrap_or_else(|err| {
             eprintln!("Problem passing arguments:\n{}", err);
+            eprintln!();
             print_instruction();
             process::exit(1);
         });
