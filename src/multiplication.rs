@@ -78,7 +78,6 @@ fn multiply_in_parallel<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_th
 
         let handle = thread::spawn(move || {
             let mut result = Vec::with_capacity((end_row - start_row) * columns);
-
             for row in start_row..end_row {
                 for column in 0..columns {
                     let mut sum = &a_numbers[row * n] * &b_numbers[column];
@@ -88,7 +87,6 @@ fn multiply_in_parallel<T>(matrix_a: &Matrix<T>, matrix_b: &Matrix<T>, num_of_th
                     result.push(sum);
                 }
             }
-
             let mut results = results_from_threads.lock().expect(
                 format!("Error acquiring mutex lock for thread {i}").as_str());
             results[i] = result;
@@ -219,5 +217,22 @@ mod test {
             assert_eq!(result, expected);
         }
     }
+
+    #[test]
+    fn multiplication_incorrect_num_of_threads() {
+        let matrix_a = Matrix::<i32>::from_vec(
+            vec!["3", "2", "1 2", "3 4", "5 6"]).unwrap();
+
+        let matrix_b = Matrix::<i32>::from_vec(
+            vec!["3", "4", "7 8 9 10", "11 12 13 14", "15 16 17 18"]).unwrap();
+
+        let incorrect_nums_of_threads = [0, 5, 10, 100];
+
+        for num_of_threads in incorrect_nums_of_threads {
+            assert!(multiply(&matrix_a, &matrix_b, num_of_threads).is_err());
+        }
+    }
+
+
 
 }
