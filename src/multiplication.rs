@@ -130,7 +130,7 @@ pub fn run(config: Config) -> Result<(), String> {
     let matrix_a = Matrix::<f64>::from_file(config.matrix_a_file_name.as_str())?;
     let matrix_b = Matrix::<f64>::from_file(config.matrix_b_file_name.as_str())?;
 
-    let matrix_c = multiply(&matrix_a, &matrix_b, 10)?;
+    let matrix_c = multiply(&matrix_a, &matrix_b, config.num_of_threads)?;
 
     return matrix_c.to_file(config.matrix_c_file_name.as_str())
 }
@@ -138,7 +138,8 @@ pub fn run(config: Config) -> Result<(), String> {
 pub struct Config {
     matrix_a_file_name: String,
     matrix_b_file_name: String,
-    matrix_c_file_name: String
+    matrix_c_file_name: String,
+    num_of_threads: usize
 }
 
 impl Config {
@@ -160,7 +161,15 @@ impl Config {
             None => return Err(String::from("Missing Matrix C file name"))
         };
 
-        Ok(Config{ matrix_a_file_name, matrix_b_file_name, matrix_c_file_name })
+        let num_of_threads = match iterator.next() {
+            Some(string_num_of_threads) => match string_num_of_threads.parse::<usize>() {
+                Ok(num_of_threads) => num_of_threads,
+                Err(_) => return Err(format!("Couldn't get number of threads from {string_num_of_threads}"))
+            },
+            None => return Err(String::from("Missing number of threads"))
+        };
+
+        Ok(Config{ matrix_a_file_name, matrix_b_file_name, matrix_c_file_name, num_of_threads })
     }
 }
 

@@ -23,5 +23,5 @@ fn main() {
 }
 
 fn print_instruction() {
-    eprintln!("Usage:\ncargo run (-r) -- [Left input matrix filename] [Right input matrix filename] [Output matrix filename]")
+    eprintln!("Usage:\ncargo run (-r) -- [Left input matrix filename] [Right input matrix filename] [Output matrix filename] [number of threads]")
 }
